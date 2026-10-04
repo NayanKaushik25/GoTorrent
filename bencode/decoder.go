@@ -27,6 +27,18 @@ func decodeInteger(r io.Reader) (int64, error) {
 	return strconv.ParseInt(decoded, 10, 64)
 }
 
+func decodeList(r io.Reader) ([]any, error) {
+	panic("not implemented")
+}
+
+func decodeDictionary(r io.Reader) (map[string]any, error) {
+	panic("not implemented")
+}
+
+func decodeString(r io.Reader, firstByte byte) (string, error) {
+	panic("not implemented")
+}
+
 func Decode(r io.Reader) (any, error) {
 	buf := make([]byte, 1)
 	n, err := r.Read(buf)

@@ -61,7 +61,29 @@ func decodeList(r io.Reader) ([]any, error) {
 }
 
 func decodeDictionary(r io.Reader) (map[string]any, error) {
-	panic("not implemented")
+	result := map[string]any{}
+	for {
+		b, err := readByte(r)
+		if err != nil {
+			return nil, err
+		}
+		if b == 'e' {
+			return result, nil
+		}
+		key, err := decodeString(r, b)
+		if err != nil {
+			return nil, err
+		}
+		valueByte, err := readByte(r)
+		if err != nil {
+			return nil, err
+		}
+		value, err := decodeValue(r, valueByte)
+		if err != nil {
+			return nil, err
+		}
+		result[key] = value
+	}
 }
 
 func decodeString(r io.Reader, firstByte byte) (string, error) {

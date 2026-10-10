@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 )
 
 func readByte(r io.Reader) (byte, error) {
@@ -39,6 +40,12 @@ func decodeInteger(r io.Reader) (int64, error) {
 			return 0, fmt.Errorf("failed to read a byte")
 		}
 	}
+	if len(decoded) > 1 && decoded[0] == '0' {
+		return 0, fmt.Errorf("leading zeroes not permitted")
+	}
+	if strings.HasPrefix(decoded, "-0") {
+		return 0, fmt.Errorf("invalid negative zero or leading zero")
+	}
 	return strconv.ParseInt(decoded, 10, 64)
 }
 
@@ -70,6 +77,9 @@ func decodeDictionary(r io.Reader) (map[string]any, error) {
 		if b == 'e' {
 			return result, nil
 		}
+		if b < '0' || b > '9' {
+			return nil, fmt.Errorf("format error")
+		}
 		key, err := decodeString(r, b)
 		if err != nil {
 			return nil, err
@@ -98,9 +108,20 @@ func decodeString(r io.Reader, firstByte byte) (string, error) {
 		}
 		lengthStr += string(b)
 	}
+	if len(lengthStr) > 1 && lengthStr[0] == '0' {
+		return "", fmt.Errorf("leading zeros not permitted in string length")
+	}
+	for _, ch := range lengthStr {
+		if ch < '0' || ch > '9' {
+			return "", fmt.Errorf("string length must contain only digits")
+		}
+	}
 	length, err := strconv.ParseInt(lengthStr, 10, 64)
 	if err != nil {
 		return "", err
+	}
+	if length < 0 {
+		return "", fmt.Errorf("String cannot have negative length")
 	}
 	result := ""
 	for i := int64(0); i < length; i++ {

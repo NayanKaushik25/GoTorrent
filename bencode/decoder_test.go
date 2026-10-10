@@ -14,6 +14,8 @@ func TestDecodeInteger(t *testing.T) {
 		{"i42e", 42},
 		{"i0e", 0},
 		{"i-42e", -42},
+		{"i0e", int64(0)},
+		{"i-42e", int64(-42)},
 	}
 	i := 0
 	for i < len(tests) {
@@ -47,6 +49,42 @@ func TestDecodeString(t *testing.T) {
 		if got != test.expected {
 			t.Errorf("expected %q,got %q", test.expected, got)
 		}
+	}
+}
+
+func TestDecodeTruncatedString(t *testing.T) {
+	reader := bytes.NewReader([]byte("5:abc"))
+	_, err := Decode(reader)
+	if err == nil {
+		t.Fatal("expected error for truncated string")
+	}
+}
+
+func TestDecodeNegativeStringLength(t *testing.T) {
+	reader := bytes.NewReader([]byte("-1:abc"))
+	_, err := Decode(reader)
+	if err == nil {
+		t.Fatal("expected error for negative string length")
+	}
+}
+
+func TestDecodeInvalidString(t *testing.T) {
+	tests := []string{
+		"04:spam",
+		"00:",
+		"+4:spam",
+		"x:spam",
+		"5:abc",
+	}
+
+	for _, input := range tests {
+		t.Run(input, func(t *testing.T) {
+			reader := bytes.NewReader([]byte(input))
+			_, err := Decode(reader)
+			if err == nil {
+				t.Fatalf("expected error for input %q", input)
+			}
+		})
 	}
 }
 
@@ -125,17 +163,14 @@ func TestDecodeDictionary(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := bytes.NewReader([]byte(tt.input))
-
 			got, err := Decode(reader)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-
 			dict, ok := got.(map[string]any)
 			if !ok {
 				t.Fatalf("expected map[string]any, got %T", got)
 			}
-
 			if !reflect.DeepEqual(dict, tt.want) {
 				t.Errorf("Decode(%q)\n got: %#v\nwant: %#v",
 					tt.input, dict, tt.want)

@@ -50,6 +50,8 @@ func ParseMetaInfo(r io.Reader) (*MetaInfo, error) {
 	if !ok {
 		return nil, fmt.Errorf("name must be a string")
 	}
+
+	// Extract piece length
 	pieceLengthValue, ok := info["piece length"]
 	if !ok {
 		return nil, fmt.Errorf("torrent missing piece length")

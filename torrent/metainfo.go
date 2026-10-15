@@ -1,6 +1,8 @@
 package torrent
 
 import (
+	"bytes"
+	"crypto/sha1"
 	"fmt"
 	"io"
 
@@ -13,10 +15,15 @@ type MetaInfo struct {
 	PieceLength int64
 	Pieces      string
 	Length      int64
+	InfoHash    [20]byte
 }
 
 func ParseMetaInfo(r io.Reader) (*MetaInfo, error) {
-	decoded, err := bencode.Decode(r)
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	decoded, err := bencode.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
@@ -81,11 +88,19 @@ func ParseMetaInfo(r io.Reader) (*MetaInfo, error) {
 		return nil, fmt.Errorf("length must be an integer")
 	}
 
+	infoBytes, err := findInfoBytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	infoHash := sha1.Sum(infoBytes)
+
 	return &MetaInfo{
 		Announce:    announce,
 		Name:        name,
 		PieceLength: pieceLength,
 		Pieces:      pieces,
 		Length:      length,
+		InfoHash:    infoHash,
 	}, nil
 }
